@@ -2,12 +2,9 @@
  * CUDA Ray Tracing Engine
  * Author: Shiven Saini
  * Email: shiven.career@proton.me
- * 
- * A real-time ray tracing engine using CUDA and OpenGL interop
- * Features: Reflections, Refractions, Shadows, Real-time camera movement
  */
 
-#include <GL/glew.h>  // MUST be included FIRST
+#include <GL/glew.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
@@ -24,9 +21,12 @@ const int WINDOW_HEIGHT = 720;
 const std::string WINDOW_TITLE = "CUDA Ray Tracer - by Shiven Saini";
 
 int main() {
-    std::cout << "CUDA Ray Tracing Engine" << std::endl;
-    std::cout << "Author: Shiven Saini (shiven.career@proton.me)" << std::endl;
-    std::cout << "Initializing..." << std::endl;
+    std::cout << "========================================" << std::endl;
+    std::cout << "    CUDA Ray Tracing Engine v1.0" << std::endl;
+    std::cout << "    Author: Shiven Saini" << std::endl;
+    std::cout << "    Email: shiven.career@proton.me" << std::endl;
+    std::cout << "    Date: " << __DATE__ << std::endl;
+    std::cout << "========================================" << std::endl;
 
     // Check CUDA capabilities
     if (!CudaUtils::checkCudaCapabilities()) {
@@ -55,14 +55,6 @@ int main() {
     // Initialize scene
     auto scene = std::make_unique<Scene>();
     scene->setupRoomScene();
-    
-    // Debug scene data
-    const SceneData& sceneData = scene->getSceneData();
-    std::cout << "Scene setup complete:" << std::endl;
-    std::cout << "  Spheres: " << sceneData.numSpheres << std::endl;
-    std::cout << "  Planes: " << sceneData.numPlanes << std::endl;
-    std::cout << "  Light position: (" << sceneData.lightPosition.x << ", " 
-              << sceneData.lightPosition.y << ", " << sceneData.lightPosition.z << ")" << std::endl;
 
     // Initialize ray tracer
     auto rayTracer = std::make_unique<RayTracer>(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -74,63 +66,27 @@ int main() {
     // Initialize FPS counter
     auto fpsCounter = std::make_unique<FPSCounter>();
 
-    std::cout << "Initialization complete!" << std::endl;
-    std::cout << "Controls: WASD to move, Mouse to look around, ESC to exit" << std::endl;
+    std::cout << "Starting render loop..." << std::endl;
+    std::cout << "You should see: Test pattern first, then ray-traced scene" << std::endl;
 
-    // Set up OpenGL state
+    // Set up OpenGL state for modern rendering
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_CULL_FACE);
-    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-    
-    // Test with a simple colored quad first
-    bool testMode = true;
-    int testFrames = 0;
+    glClearColor(0.1f, 0.1f, 0.1f, 1.0f); // Dark gray background
 
     // Main render loop
     while (!window->shouldClose()) {
         window->pollEvents();
-        
-        // Update FPS counter
         fpsCounter->update();
-        
-        // Update camera
         camera->update(window->getGLFWWindow(), fpsCounter->getDeltaTime());
         
-        // Clear the screen
+        // Clear screen
         glClear(GL_COLOR_BUFFER_BIT);
         
-        if (testMode && testFrames < 120) {
-            // Test mode: render a simple colored quad to verify OpenGL works
-            glBegin(GL_QUADS);
-            glColor3f(1.0f, 0.0f, 0.0f); glVertex2f(-0.5f, -0.5f);
-            glColor3f(0.0f, 1.0f, 0.0f); glVertex2f( 0.5f, -0.5f);
-            glColor3f(0.0f, 0.0f, 1.0f); glVertex2f( 0.5f,  0.5f);
-            glColor3f(1.0f, 1.0f, 0.0f); glVertex2f(-0.5f,  0.5f);
-            glEnd();
-            testFrames++;
-            
-            if (testFrames == 120) {
-                std::cout << "Test mode complete. Switching to ray tracing..." << std::endl;
-                testMode = false;
-            }
-        } else {
-            // Ray tracing mode
-            rayTracer->render(*camera, *scene);
-            
-            // Display the ray-traced result
-            glEnable(GL_TEXTURE_2D);
-            glBindTexture(GL_TEXTURE_2D, rayTracer->getTextureID());
-            
-            glColor3f(1.0f, 1.0f, 1.0f); // Reset color to white
-            glBegin(GL_QUADS);
-            glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
-            glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0f, -1.0f);
-            glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0f,  1.0f);
-            glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f,  1.0f);
-            glEnd();
-            
-            glDisable(GL_TEXTURE_2D);
-        }
+        // Update ray tracing
+        rayTracer->render(*camera, *scene);
+        
+        // Render the textured quad using modern OpenGL
+        rayTracer->renderQuad();
         
         window->swapBuffers();
         

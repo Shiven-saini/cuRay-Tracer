@@ -5,6 +5,7 @@
 #include "Camera.h"
 #include <cuda_runtime.h>
 #include <cuda_gl_interop.h>
+#include <GL/glew.h>
 
 class RayTracer {
 public:
@@ -13,9 +14,10 @@ public:
 
     bool initialize();
     void render(const Camera& camera, const Scene& scene);
-    void resize(int width, int height);
+    void resize(int newWidth, int newHeight);
     
     unsigned int getTextureID() const { return textureID; }
+    void renderQuad(); // Add this method
 
 private:
     int width, height;
@@ -23,6 +25,8 @@ private:
     // OpenGL resources
     unsigned int textureID;
     unsigned int pbo;
+    unsigned int shaderProgram;
+    unsigned int VAO, VBO, EBO;
     
     // CUDA resources
     cudaGraphicsResource* cudaPboResource;
@@ -34,6 +38,8 @@ private:
     
     bool initializeGL();
     bool initializeCUDA();
+    bool createShaderProgram();
+    bool createQuadGeometry();
     void cleanup();
 };
 

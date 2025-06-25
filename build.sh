@@ -4,7 +4,7 @@
 
 set -e  # Exit on any error
 
-echo "Building cuRay-Tracer..."
+echo "Building CudaRayTracer..."
 
 # Create build directory if it doesn't exist
 if [ ! -d "build" ]; then
@@ -24,4 +24,4 @@ echo "Compiling..."
 make -j$(nproc)
 
 echo "Build complete!"
-echo "Executable created: ./build/cuRayTracer"
+echo "Executable created: ./build/CudaRayTracer"

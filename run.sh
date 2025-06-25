@@ -12,4 +12,4 @@ fi
 
 echo "Running cuRay-Tracer..."
 cd build
-./cuRayTracer "$@"
+./CudaRayTracer "$@"

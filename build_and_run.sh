@@ -4,9 +4,9 @@
 
 set -e  # Exit on any error
 
-echo "=== Building cuRay-Tracer ==="
+echo "=== Building CudaRayTracer ==="
 ./build.sh
 
 echo ""
-echo "=== Running cuRay-Tracer ==="
+echo "=== Running CudaRayTracer ==="
 ./run.sh "$@"

@@ -1,7 +1,8 @@
 # CUDA Ray Tracing Engine
 
-**Author:** Shiven Saini  
-**Email:** shiven.career@proton.me  
+<p align="center">
+  <img src="assets/demo.gif" alt="Demo GIF" />
+</p>
 
 A real-time CUDA-accelerated ray tracer built with OpenGL for interactive 3D rendering.
 
@@ -175,3 +176,8 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - John Hopkin's GPU Programming specialization materials
 - OpenGL and GLFW communities
 - Ray tracing algorithm references and tutorials
+
+---
+
+**AUTHOR :-** Shiven Saini
+**EMAIL ID :-** shiven.career@proton.me

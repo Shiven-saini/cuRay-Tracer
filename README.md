@@ -2,228 +2,176 @@
 
 **Author:** Shiven Saini  
 **Email:** shiven.career@proton.me  
-**Date:** June 2025
 
-## Overview
-
-A high-performance real-time ray tracing engine built with CUDA and OpenGL, featuring GPU-accelerated rendering with advanced lighting effects including reflections, refractions, and shadows. The engine uses CUDA-OpenGL interoperability for optimal performance and supports real-time camera movement and interaction.
+A real-time CUDA-accelerated ray tracer built with OpenGL for interactive 3D rendering.
 
 ## Features
 
-### Core Rendering Features
-- **GPU-Accelerated Ray Tracing**: Utilizes NVIDIA CUDA for parallel ray computation
-- **Real-time Performance**: Optimized for 720p resolution with 30+ FPS on modern GPUs
-- **Advanced Materials**: Support for diffuse, reflective, and refractive materials
-- **Complex Scene Rendering**: Room-like environment with multiple geometric primitives
+- **CUDA-accelerated ray tracing** for real-time performance
+- **Interactive camera control** with mouse navigation
+- **Dynamic light source control** using keyboard input
+- **Real-time rendering** with OpenGL display
+- **Cross-platform support** (Linux, Windows, macOS)
 
-### Visual Effects
-- **Reflections**: High-quality mirror-like reflections with configurable reflectivity
-- **Refractions**: Glass-like materials with realistic light bending
-- **Shadows**: Hard shadows with proper occlusion testing
-- **Multi-bounce Lighting**: Configurable ray depth for global illumination
-- **Anti-aliasing**: Multi-sample anti-aliasing for smooth edges
-- **Tone Mapping**: HDR tone mapping with gamma correction
+## Prerequisites
 
-### Interactive Features
-- **Real-time Camera Control**: WASD movement + mouse look
-- **FPS Counter**: Real-time performance monitoring
-- **Responsive Design**: Immediate visual feedback to camera movement
+- **NVIDIA GPU** with CUDA support
+- **CUDA Toolkit** (version 11.0 or higher)
+- **CMake** (version 3.18 or higher)
+- **OpenGL** development libraries
+- **GLFW3** for window management
+- **GLEW** for OpenGL extension loading
 
-### Technical Features
-- **CUDA-OpenGL Interop**: Seamless GPU memory sharing
-- **Modern C++17**: Clean, maintainable codebase
-- **CMake Build System**: Cross-platform build support
-- **Modular Architecture**: Well-organized component-based design
+### Installing Dependencies (Ubuntu/Debian)
 
-## Requirements
-
-### Hardware
-- NVIDIA GPU with CUDA Compute Capability 3.0+
-- Minimum 2GB VRAM recommended
-- Modern multi-core CPU
-
-### Software
-- Linux (Ubuntu 18.04+ recommended)
-- CUDA Toolkit 11.0+
-- CMake 3.18+
-- GCC 7.0+ with C++17 support
-
-### Dependencies
-- OpenGL 3.3+
-- GLFW 3.3+
-- GLEW 2.0+
-- CUDA Runtime & Libraries
-
-## Installation
-
-### 1. Install CUDA Toolkit
-```bash
-# Download from NVIDIA Developer website
-wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
-sudo mv cuda-ubuntu2004.pin /etc/apt/preferences.d/cuda-repository-pin-600
-wget https://developer.download.nvidia.com/compute/cuda/12.0.0/local_installers/cuda-repo-ubuntu2004-12-0-local_12.0.0-525.60.13-1_amd64.deb
-sudo dpkg -i cuda-repo-ubuntu2004-12-0-local_12.0.0-525.60.13-1_amd64.deb
-sudo cp /var/cuda-repo-ubuntu2004-12-0-local/cuda-*-keyring.gpg /usr/share/keyrings/
-sudo apt-get update
-sudo apt-get -y install cuda
-```
-
-### 2. Install Dependencies
 ```bash
 sudo apt update
-sudo apt install -y build-essential cmake
-sudo apt install -y libglfw3-dev libglew-dev libgl1-mesa-dev
+sudo apt install cmake build-essential
+sudo apt install libglfw3-dev libglew-dev libgl1-mesa-dev
 ```
 
-### 3. Build the Project
+### Installing CUDA Toolkit
+
+Download and install the CUDA Toolkit from [NVIDIA's official website](https://developer.nvidia.com/cuda-downloads).
+
+## Building the Project
+
+### Using Build Scripts (Recommended)
+
+Make the scripts executable:
 ```bash
-git clone <repository-url>
-cd CudaRayTracer
-mkdir build && cd build
-cmake ..
-make -j$(nproc)
+chmod +x clean.sh build.sh run.sh build_and_run.sh
 ```
 
-### 4. Run the Engine
+**Clean build directory:**
 ```bash
-./CudaRayTracer
+./clean.sh
 ```
+
+**Build the project:**
+```bash
+./build.sh
+```
+
+**Run the executable:**
+```bash
+./run.sh
+```
+
+**Build and run in one command:**
+```bash
+./build_and_run.sh
+```
+
+### Manual Build
+
+1. **Create build directory:**
+   ```bash
+   mkdir build && cd build
+   ```
+
+2. **Configure with CMake:**
+   ```bash
+   cmake ..
+   ```
+
+3. **Build the project:**
+   ```bash
+   make -j$(nproc)
+   ```
+
+4. **Run the executable:**
+   ```bash
+   ./cuRayTracer
+   ```
 
 ## Controls
 
-| Control | Action |
-|---------|--------|
-| `W` | Move forward |
-| `S` | Move backward |
-| `A` | Move left |
-| `D` | Move right |
-| `Space` | Move up |
-| `Shift` | Move down |
-| `Mouse` | Look around |
-| `ESC` | Exit application |
+### Camera Control (Mouse)
+- **Mouse Movement**: Look around (first-person camera)
+- **Mouse Scroll**: Zoom in/out
+- **Left Click + Drag**: Rotate camera view
+- **Right Click + Drag**: Pan camera
+
+### Light Source Control (Keyboard)
+- **W**: Move light forward
+- **S**: Move light backward
+- **A**: Move light left
+- **D**: Move light right
+- **Q**: Move light up
+- **E**: Move light down
+
+### General Controls
+- **ESC**: Exit application
+- **R**: Reset camera and light positions
+- **F**: Toggle fullscreen mode
+- **Space**: Pause/resume animation
 
 ## Project Structure
 
 ```
-CudaRayTracer/
-├── CMakeLists.txt              # Build configuration
-├── README.md                   # This file
-├── include/                    # Header files
-│   ├── math/                   # Mathematical utilities
-│   │   ├── Vec3.h             # 3D vector class
-│   │   └── Ray.h              # Ray class
-│   ├── primitives/            # Geometric primitives
-│   │   ├── Sphere.h           # Sphere primitive
-│   │   ├── Plane.h            # Plane primitive
-│   │   └── Material.h         # Material definitions
-│   ├── cuda/                  # CUDA-specific headers
-│   │   ├── raytracing_kernel.h # Kernel declarations
-│   │   └── cuda_utils.h       # CUDA utilities
-│   ├── Window.h               # Window management
-│   ├── Camera.h               # Camera system
-│   ├── Scene.h                # Scene management
-│   ├── RayTracer.h            # Main ray tracer
-│   └── FPSCounter.h           # Performance monitoring
-└── src/                       # Source files
-    ├── main.cpp               # Application entry point
-    ├── Window.cpp             # Window implementation
-    ├── Camera.cpp             # Camera implementation
-    ├── Scene.cpp              # Scene setup
-    ├── RayTracer.cpp          # Ray tracer implementation
-    ├── FPSCounter.cpp         # FPS counter implementation
-    └── cuda/                  # CUDA implementations
-        ├── raytracing_kernel.cu # Ray tracing kernels
-        └── cuda_utils.cu      # CUDA utility functions
+cuRay-Tracer/
+├── src/                    # Source code
+│   ├── main.cpp           # Main application entry point
+│   ├── renderer.cu        # CUDA ray tracing kernels
+│   ├── camera.cpp         # Camera management
+│   └── scene.cpp          # Scene setup and management
+├── include/               # Header files
+├── shaders/              # OpenGL shaders
+├── CMakeLists.txt        # CMake configuration
+├── clean.sh              # Clean build directory
+├── build.sh              # Build project
+├── run.sh                # Run executable
+├── build_and_run.sh      # Build and run combined
+└── README.md             # This file
 ```
 
-## Architecture
+## Performance Tips
 
-### Core Components
-
-1. **Window Management**: GLFW-based window creation and input handling
-2. **Camera System**: First-person camera with smooth movement and mouse look
-3. **Scene Management**: Hierarchical scene representation with materials
-4. **Ray Tracer**: CUDA-accelerated ray tracing with OpenGL interop
-5. **Performance Monitoring**: Real-time FPS and timing information
-
-### Rendering Pipeline
-
-1. **Scene Setup**: Initialize geometric primitives and materials
-2. **Camera Update**: Process input and update camera matrices
-3. **CUDA Kernel Launch**: Generate rays and trace through scene
-4. **Lighting Calculation**: Compute direct and indirect lighting
-5. **Material Interaction**: Handle reflections, refractions, and shadows
-6. **Post-processing**: Apply tone mapping and gamma correction
-7. **Display**: Present final image via OpenGL texture
-
-### Memory Management
-
-- **GPU Memory**: Efficient allocation and deallocation
-- **CUDA-OpenGL Interop**: Zero-copy data sharing
-- **Resource Management**: RAII-based cleanup and error handling
-
-## Performance Optimization
-
-### CUDA Optimizations
-- **Coalesced Memory Access**: Optimized memory access patterns
-- **Shared Memory Usage**: Minimize global memory bandwidth
-- **Occupancy Optimization**: Balanced thread block sizes
-- **Fast Math**: Enabled for performance-critical operations
-
-### Algorithmic Optimizations
-- **Early Ray Termination**: Stop tracing when contribution is minimal
-- **Adaptive Sampling**: Variable sample counts based on scene complexity
-- **Efficient Intersection Testing**: Optimized ray-primitive intersections
+- Ensure your NVIDIA GPU drivers are up to date
+- For best performance, use a GPU with compute capability 6.0 or higher
+- Adjust ray tracing parameters in the source code for optimal performance/quality balance
+- Use Release build configuration for maximum performance:
+  ```bash
+  cmake -DCMAKE_BUILD_TYPE=Release ..
+  ```
 
 ## Troubleshooting
 
 ### Common Issues
 
-**CUDA Device Not Found**
-```bash
-nvidia-smi  # Check if NVIDIA driver is installed
-nvcc --version  # Check CUDA installation
-```
+**CUDA not found:**
+- Ensure CUDA Toolkit is properly installed
+- Add CUDA to your PATH: `export PATH=/usr/local/cuda/bin:$PATH`
+- Add CUDA libraries to LD_LIBRARY_PATH: `export LD_LIBRARY_PATH=/usr/local/cuda/lib64:$LD_LIBRARY_PATH`
 
-**Build Errors**
-```bash
-# Ensure all dependencies are installed
-sudo apt install build-essential cmake libglfw3-dev libglew-dev
-```
+**OpenGL libraries not found:**
+- Install development packages: `sudo apt install libgl1-mesa-dev libglu1-mesa-dev`
 
-**Low Performance**
-- Check GPU memory usage: `nvidia-smi`
-- Verify CUDA compute capability: Must be 3.0+
-- Monitor thermal throttling
+**Build fails with compute capability errors:**
+- Check your GPU's compute capability and update CMakeLists.txt accordingly
+- Modern GPUs typically support compute capability 6.0 or higher
 
-### Debug Mode
-```bash
-cmake -DCMAKE_BUILD_TYPE=Debug ..
-make
-gdb ./CudaRayTracer
-```
+**Runtime performance issues:**
+- Verify GPU is being used: `nvidia-smi` while running
+- Reduce ray tracing resolution or depth for better performance
+- Ensure adequate GPU memory is available
 
-## Future Enhancements
+## Contributing
 
-- [ ] Denoising algorithms for real-time quality
-- [ ] Volumetric lighting and fog effects
-- [ ] Temporal anti-aliasing (TAA)
-- [ ] Scene loading from external files
-- [ ] Material editor interface
-- [ ] Multi-GPU support
-- [ ] RTX hardware acceleration integration
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test thoroughly
+5. Submit a pull request
 
 ## License
 
-This project is open source. Feel free to use, modify, and distribute according to your needs.
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
+## Acknowledgments
 
-**Shiven Saini**  
-Email: shiven.career@proton.me  
-
-For questions, suggestions, or collaboration opportunities, please don't hesitate to reach out!
-
----
-
-*Built with passion for real-time graphics and GPU computing.*
+- NVIDIA CUDA documentation and samples
+- John Hopkin's GPU Programming specialization materials
+- OpenGL and GLFW communities
+- Ray tracing algorithm references and tutorials

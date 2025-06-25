@@ -55,6 +55,14 @@ int main() {
     // Initialize scene
     auto scene = std::make_unique<Scene>();
     scene->setupRoomScene();
+    
+    // Debug scene data
+    const SceneData& sceneData = scene->getSceneData();
+    std::cout << "Scene setup complete:" << std::endl;
+    std::cout << "  Spheres: " << sceneData.numSpheres << std::endl;
+    std::cout << "  Planes: " << sceneData.numPlanes << std::endl;
+    std::cout << "  Light position: (" << sceneData.lightPosition.x << ", " 
+              << sceneData.lightPosition.y << ", " << sceneData.lightPosition.z << ")" << std::endl;
 
     // Initialize ray tracer
     auto rayTracer = std::make_unique<RayTracer>(WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -69,6 +77,15 @@ int main() {
     std::cout << "Initialization complete!" << std::endl;
     std::cout << "Controls: WASD to move, Mouse to look around, ESC to exit" << std::endl;
 
+    // Set up OpenGL state
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_CULL_FACE);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    
+    // Test with a simple colored quad first
+    bool testMode = true;
+    int testFrames = 0;
+
     // Main render loop
     while (!window->shouldClose()) {
         window->pollEvents();
@@ -79,23 +96,41 @@ int main() {
         // Update camera
         camera->update(window->getGLFWWindow(), fpsCounter->getDeltaTime());
         
-        // Render scene
-        rayTracer->render(*camera, *scene);
-        
-        // Display the ray-traced result
+        // Clear the screen
         glClear(GL_COLOR_BUFFER_BIT);
         
-        glEnable(GL_TEXTURE_2D);
-        glBindTexture(GL_TEXTURE_2D, rayTracer->getTextureID());
-        
-        glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0f,  1.0f);
-        glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f,  1.0f);
-        glEnd();
-        
-        glDisable(GL_TEXTURE_2D);
+        if (testMode && testFrames < 120) {
+            // Test mode: render a simple colored quad to verify OpenGL works
+            glBegin(GL_QUADS);
+            glColor3f(1.0f, 0.0f, 0.0f); glVertex2f(-0.5f, -0.5f);
+            glColor3f(0.0f, 1.0f, 0.0f); glVertex2f( 0.5f, -0.5f);
+            glColor3f(0.0f, 0.0f, 1.0f); glVertex2f( 0.5f,  0.5f);
+            glColor3f(1.0f, 1.0f, 0.0f); glVertex2f(-0.5f,  0.5f);
+            glEnd();
+            testFrames++;
+            
+            if (testFrames == 120) {
+                std::cout << "Test mode complete. Switching to ray tracing..." << std::endl;
+                testMode = false;
+            }
+        } else {
+            // Ray tracing mode
+            rayTracer->render(*camera, *scene);
+            
+            // Display the ray-traced result
+            glEnable(GL_TEXTURE_2D);
+            glBindTexture(GL_TEXTURE_2D, rayTracer->getTextureID());
+            
+            glColor3f(1.0f, 1.0f, 1.0f); // Reset color to white
+            glBegin(GL_QUADS);
+            glTexCoord2f(0.0f, 0.0f); glVertex2f(-1.0f, -1.0f);
+            glTexCoord2f(1.0f, 0.0f); glVertex2f( 1.0f, -1.0f);
+            glTexCoord2f(1.0f, 1.0f); glVertex2f( 1.0f,  1.0f);
+            glTexCoord2f(0.0f, 1.0f); glVertex2f(-1.0f,  1.0f);
+            glEnd();
+            
+            glDisable(GL_TEXTURE_2D);
+        }
         
         window->swapBuffers();
         

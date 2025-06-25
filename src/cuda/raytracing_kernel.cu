@@ -7,6 +7,7 @@
 #include <curand_kernel.h>
 #include <float.h>
 #include <cfloat>
+#include <cstdio>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
@@ -206,7 +207,7 @@ __device__ Vec3 traceRay(Ray ray, const SceneData* scene, curandState* randState
     return color;
 }
 
-__global__ void rayTracingKernel(float3* output, int width, int height,
+__global__ void rayTracingKernel(float4* output, int width, int height,
                                 const SceneData* scene, Vec3 cameraPos, 
                                 Vec3 cameraFront, Vec3 cameraUp, Vec3 cameraRight,
                                 float fov) {
@@ -216,6 +217,12 @@ __global__ void rayTracingKernel(float3* output, int width, int height,
     if (x >= width || y >= height) return;
     
     int idx = y * width + x;
+    
+    // Simple test: output red color for first few pixels to verify kernel is running
+    if (x < 10 && y < 10) {
+        output[idx] = make_float4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+        return;
+    }
     
     // Initialize random state
     curandState randState;
@@ -236,38 +243,29 @@ __global__ void rayTracingKernel(float3* output, int width, int height,
     Vec3 rayDir = (cameraFront + cameraRight * u + cameraUp * v).normalize();
     Ray ray(cameraPos, rayDir);
     
-    // Trace ray with anti-aliasing
+    // For now, use simple gradient to test rendering pipeline
     Vec3 color(0, 0, 0);
-    int samples = 4;
     
-    for (int s = 0; s < samples; s++) {
-        float jitterX = (curand_uniform(&randState) - 0.5f) / float(width);
-        float jitterY = (curand_uniform(&randState) - 0.5f) / float(height);
-        
-        float uJitter = u + jitterX * 2.0f * halfWidth;
-        float vJitter = v + jitterY * 2.0f * halfHeight;
-        
-        Vec3 jitteredDir = (cameraFront + cameraRight * uJitter + cameraUp * vJitter).normalize();
-        Ray jitteredRay(cameraPos, jitteredDir);
-        
-        color = color + traceRay(jitteredRay, scene, &randState);
-    }
+    // Simple gradient based on ray direction for testing
+    color.x = (rayDir.x + 1.0f) * 0.5f;
+    color.y = (rayDir.y + 1.0f) * 0.5f;
+    color.z = (rayDir.z + 1.0f) * 0.5f;
     
-    color = color * (1.0f / float(samples));
+    // Enable this for full ray tracing once gradient works
+    /*
+    color = traceRay(ray, scene, &randState);
+    */
     
-    // Tone mapping and gamma correction
-    color.x = color.x / (color.x + 1.0f);
-    color.y = color.y / (color.y + 1.0f);
-    color.z = color.z / (color.z + 1.0f);
+    // Ensure values are in valid range
+    color.x = fminf(fmaxf(color.x, 0.0f), 1.0f);
+    color.y = fminf(fmaxf(color.y, 0.0f), 1.0f);
+    color.z = fminf(fmaxf(color.z, 0.0f), 1.0f);
     
-    color.x = sqrtf(color.x);
-    color.y = sqrtf(color.y);
-    color.z = sqrtf(color.z);
-    
-    output[idx] = make_float3(color.x, color.y, color.z);
+    // Output as float4 for RGBA
+    output[idx] = make_float4(color.x, color.y, color.z, 1.0f);
 }
 
-extern "C" void launchRayTracingKernel(float3* output, int width, int height,
+extern "C" void launchRayTracingKernel(float4* output, int width, int height,
                                       const SceneData* scene, Vec3 cameraPos, 
                                       Vec3 cameraFront, Vec3 cameraUp, Vec3 cameraRight,
                                       float fov, cudaStream_t stream) {

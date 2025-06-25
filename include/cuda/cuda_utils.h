@@ -17,6 +17,7 @@
 namespace CudaUtils {
     void printDeviceInfo();
     bool checkCudaCapabilities();
+    void checkKernelLaunch(const char* kernelName);
 }
 
 #endif

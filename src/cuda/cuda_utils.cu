@@ -23,6 +23,7 @@ void printDeviceInfo() {
         std::cout << "  Global memory: " << prop.totalGlobalMem / (1024 * 1024) << " MB" << std::endl;
         std::cout << "  Multiprocessors: " << prop.multiProcessorCount << std::endl;
         std::cout << "  Max threads per block: " << prop.maxThreadsPerBlock << std::endl;
+        std::cout << "  Warp size: " << prop.warpSize << std::endl;
     }
 }
 
@@ -45,6 +46,20 @@ bool checkCudaCapabilities() {
     }
     
     return true;
+}
+
+void checkKernelLaunch(const char* kernelName) {
+    cudaError_t err = cudaGetLastError();
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA kernel launch error (" << kernelName << "): " 
+                  << cudaGetErrorString(err) << std::endl;
+    }
+    
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        std::cerr << "CUDA kernel execution error (" << kernelName << "): " 
+                  << cudaGetErrorString(err) << std::endl;
+    }
 }
 
 } // namespace CudaUtils

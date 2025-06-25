@@ -1,7 +1,0 @@
-{
-	"InstallScripts" : 
-	[
-		"/home/davinci/gpu/cuRay-Tracer/build/cmake_install.cmake"
-	],
-	"Parallel" : false
-}

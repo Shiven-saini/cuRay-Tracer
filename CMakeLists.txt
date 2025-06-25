@@ -66,5 +66,14 @@ target_compile_options(${PROJECT_NAME} PRIVATE
         --use_fast_math
         -lineinfo
         --ptxas-options=-v
+        -Wno-deprecated-gpu-targets
+        --expt-relaxed-constexpr
     >
 )
+
+# Debug information
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(${PROJECT_NAME} PRIVATE
+        $<$<COMPILE_LANGUAGE:CUDA>:-G>
+    )
+endif()

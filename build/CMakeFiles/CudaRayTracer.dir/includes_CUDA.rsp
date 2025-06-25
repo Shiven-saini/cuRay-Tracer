@@ -1,0 +1,1 @@
+-I"/home/davinci/gpu/cuRay-Tracer/include" -I"/opt/cuda/targets/x86_64-linux/include"

@@ -1,0 +1,3 @@
+/home/davinci/gpu/cuRay-Tracer/build/CMakeFiles/CudaRayTracer.dir
+/home/davinci/gpu/cuRay-Tracer/build/CMakeFiles/edit_cache.dir
+/home/davinci/gpu/cuRay-Tracer/build/CMakeFiles/rebuild_cache.dir

@@ -7,6 +7,8 @@
  * Features: Reflections, Refractions, Shadows, Real-time camera movement
  */
 
+#include <GL/glew.h>  // MUST be included FIRST
+#include <GLFW/glfw3.h>
 #include <iostream>
 #include <memory>
 

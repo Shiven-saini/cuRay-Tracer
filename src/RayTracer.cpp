@@ -1,7 +1,7 @@
+#include <GL/glew.h> 
 #include "RayTracer.h"
 #include "cuda/raytracing_kernel.h"
 #include "cuda/cuda_utils.h"
-#include <GL/glew.h>
 #include <iostream>
 
 RayTracer::RayTracer(int width, int height)

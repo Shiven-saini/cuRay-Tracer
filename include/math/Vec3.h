@@ -4,6 +4,10 @@
 #include <cmath>
 #include <cuda_runtime.h>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 struct Vec3 {
     float x, y, z;
 
@@ -58,5 +62,10 @@ struct Vec3 {
         return *this * eta + normal * (eta * cosI - sqrtf(1.0f - sinT2));
     }
 };
+
+// Global operators for scalar multiplication
+__host__ __device__ inline Vec3 operator*(float t, const Vec3& v) {
+    return Vec3(v.x * t, v.y * t, v.z * t);
+}
 
 #endif

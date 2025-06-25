@@ -1,4 +1,5 @@
 #include "Camera.h"
+#include <GLFW/glfw3.h>
 #include <algorithm>
 #include <iostream>
 
@@ -82,7 +83,7 @@ void Camera::updateProjection() {
     float halfHeight = tanf(theta / 2.0f);
     float halfWidth = aspect * halfHeight;
     
-    lowerLeftCorner = position - halfWidth * right - halfHeight * up + front;
+    lowerLeftCorner = position - right * halfWidth - up * halfHeight + front;
     horizontal = right * (2.0f * halfWidth);
     vertical = up * (2.0f * halfHeight);
 }

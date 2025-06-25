@@ -3,7 +3,9 @@
 
 #include "math/Vec3.h"
 #include "math/Ray.h"
-#include <GLFW/glfw3.h>
+
+// Forward declare GLFW to avoid header conflicts
+struct GLFWwindow;
 
 class Camera {
 public:

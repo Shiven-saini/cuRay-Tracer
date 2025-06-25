@@ -5,6 +5,12 @@
 #include "primitives/Plane.h"
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
+#include <float.h>
+#include <cfloat>
+
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 #define MAX_RAY_DEPTH 8
 #define EPSILON 0.001f

@@ -18,12 +18,17 @@ public:
     Vec3 getPosition() const { return position; }
     Vec3 getDirection() const { return front; }
 
+    // New method for orbit camera
+    void setOrbitMode(bool enabled) { orbitMode = enabled; }
+    void setTarget(const Vec3& newTarget) { target = newTarget; updateOrbitCamera(); }
+
 private:
     Vec3 position;
     Vec3 front;
     Vec3 up;
     Vec3 right;
     Vec3 worldUp;
+    Vec3 target; // Target point for orbit camera
 
     float yaw;
     float pitch;
@@ -31,6 +36,12 @@ private:
     float aspect;
     float speed;
     float sensitivity;
+
+    // Orbit camera parameters
+    bool orbitMode;
+    float orbitDistance;
+    float orbitYaw;
+    float orbitPitch;
 
     Vec3 lowerLeftCorner;
     Vec3 horizontal;
@@ -41,6 +52,7 @@ private:
 
     void updateCameraVectors();
     void updateProjection();
+    void updateOrbitCamera();
     static void mouseCallback(GLFWwindow* window, double xpos, double ypos);
 };
 

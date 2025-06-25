@@ -4,35 +4,24 @@
 #include <iostream>
 
 Camera::Camera(Vec3 position, Vec3 target, Vec3 up, float fov, float aspect)
-    : position(position), worldUp(up), fov(fov), aspect(aspect),
-      speed(5.0f), sensitivity(0.1f), firstMouse(true), lastX(640), lastY(360) {
+    : position(position), target(target), worldUp(up), fov(fov), aspect(aspect),
+      speed(5.0f), sensitivity(0.1f), firstMouse(true), lastX(640), lastY(360),
+      orbitMode(true), orbitDistance(8.0f), orbitYaw(0.0f), orbitPitch(20.0f) {
     
-    Vec3 direction = (target - position).normalize();
-    yaw = atan2f(direction.z, direction.x) * 180.0f / M_PI;
-    pitch = asinf(direction.y) * 180.0f / M_PI;
+    // Calculate initial orbit distance
+    orbitDistance = (position - target).length();
     
-    updateCameraVectors();
+    // Calculate initial orbit angles
+    Vec3 direction = (position - target).normalize();
+    orbitYaw = atan2f(direction.x, direction.z) * 180.0f / M_PI;
+    orbitPitch = asinf(direction.y) * 180.0f / M_PI;
+    
+    updateOrbitCamera();
     updateProjection();
 }
 
 void Camera::update(GLFWwindow* window, float deltaTime) {
-    // Handle keyboard input
-    float velocity = speed * deltaTime;
-    
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        position = position + front * velocity;
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        position = position - front * velocity;
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        position = position - right * velocity;
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        position = position + right * velocity;
-    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
-        position = position + worldUp * velocity;
-    if (glfwGetKey(window, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS)
-        position = position - worldUp * velocity;
-
-    // Handle mouse input
+    // Handle mouse input for camera orbit
     double xpos, ypos;
     glfwGetCursorPos(window, &xpos, &ypos);
     
@@ -47,16 +36,32 @@ void Camera::update(GLFWwindow* window, float deltaTime) {
     lastX = xpos;
     lastY = ypos;
 
-    xoffset *= sensitivity;
-    yoffset *= sensitivity;
+    // Only update camera if mouse button is pressed or in continuous mode
+    bool mousePressed = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+    
+    if (mousePressed || true) { // Always allow mouse control for smooth experience
+        xoffset *= sensitivity;
+        yoffset *= sensitivity;
 
-    yaw += xoffset;
-    pitch += yoffset;
+        if (orbitMode) {
+            orbitYaw += xoffset;
+            orbitPitch += yoffset;
 
-    // Constrain pitch
-    pitch = std::max(-89.0f, std::min(89.0f, pitch));
+            // Constrain pitch
+            orbitPitch = std::max(-89.0f, std::min(89.0f, orbitPitch));
 
-    updateCameraVectors();
+            updateOrbitCamera();
+        } else {
+            yaw += xoffset;
+            pitch += yoffset;
+            pitch = std::max(-89.0f, std::min(89.0f, pitch));
+            updateCameraVectors();
+        }
+    }
+
+    // Handle scroll for zoom (optional)
+    // Note: You'd need to set up a scroll callback for this to work
+    
     updateProjection();
 }
 
@@ -74,6 +79,21 @@ void Camera::updateCameraVectors() {
     front = newFront.normalize();
     
     // Calculate right and up vectors
+    right = front.cross(worldUp).normalize();
+    up = right.cross(front).normalize();
+}
+
+void Camera::updateOrbitCamera() {
+    // Convert spherical coordinates to Cartesian
+    float yawRad = orbitYaw * M_PI / 180.0f;
+    float pitchRad = orbitPitch * M_PI / 180.0f;
+    
+    position.x = target.x + orbitDistance * sinf(yawRad) * cosf(pitchRad);
+    position.y = target.y + orbitDistance * sinf(pitchRad);
+    position.z = target.z + orbitDistance * cosf(yawRad) * cosf(pitchRad);
+    
+    // Update camera vectors to look at target
+    front = (target - position).normalize();
     right = front.cross(worldUp).normalize();
     up = right.cross(front).normalize();
 }

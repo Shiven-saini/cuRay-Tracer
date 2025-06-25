@@ -3,6 +3,7 @@
 #include "cuda/raytracing_kernel.h"
 #include "cuda/cuda_utils.h"
 #include <iostream>
+#include <vector>
 
 RayTracer::RayTracer(int width, int height)
     : width(width), height(height), textureID(0), pbo(0),
@@ -31,11 +32,16 @@ bool RayTracer::initialize() {
 }
 
 bool RayTracer::initializeGL() {
-    // Check OpenGL version
+    // Check OpenGL version and extensions
     const char* version = (const char*)glGetString(GL_VERSION);
-    std::cout << "OpenGL Version: " << (version ? version : "Unknown") << std::endl;
+    const char* vendor = (const char*)glGetString(GL_VENDOR);
+    const char* renderer = (const char*)glGetString(GL_RENDERER);
     
-    // Create texture with correct format
+    std::cout << "OpenGL Version: " << (version ? version : "Unknown") << std::endl;
+    std::cout << "OpenGL Vendor: " << (vendor ? vendor : "Unknown") << std::endl;
+    std::cout << "OpenGL Renderer: " << (renderer ? renderer : "Unknown") << std::endl;
+    
+    // Create texture with standard RGB format first
     glGenTextures(1, &textureID);
     if (glGetError() != GL_NO_ERROR) {
         std::cerr << "Failed to generate texture" << std::endl;
@@ -48,53 +54,30 @@ bool RayTracer::initializeGL() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
-    // Use GL_RGBA32F for internal format and GL_RGBA + GL_FLOAT for data format
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, width, height, 0, GL_RGBA, GL_FLOAT, nullptr);
+    // Try simpler RGB format instead of RGBA32F
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, nullptr);
     
     GLenum err = glGetError();
     if (err != GL_NO_ERROR) {
         std::cerr << "Failed to create texture, error: " << err << std::endl;
         return false;
     }
-    std::cout << "Texture created: " << textureID << " (" << width << "x" << height << ")" << std::endl;
+    std::cout << "Texture created: " << textureID << " (" << width << "x" << height << ") - RGB format" << std::endl;
     
-    // Create PBO with the correct size for RGBA float data
-    glGenBuffers(1, &pbo);
-    if (glGetError() != GL_NO_ERROR) {
-        std::cerr << "Failed to generate PBO" << std::endl;
-        return false;
-    }
-    
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, width * height * 4 * sizeof(float), nullptr, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-    
-    err = glGetError();
-    if (err != GL_NO_ERROR) {
-        std::cerr << "Failed to create PBO, error: " << err << std::endl;
-        return false;
-    }
-    std::cout << "PBO created: " << pbo << " (size: " << (width * height * 4 * sizeof(float)) << " bytes)" << std::endl;
+    // Don't use PBO for now - direct memory approach
+    glBindTexture(GL_TEXTURE_2D, 0);
     
     return true;
 }
 
 bool RayTracer::initializeCUDA() {
-    // Register PBO with CUDA
-    cudaError_t err = cudaGraphicsGLRegisterBuffer(&cudaPboResource, pbo, cudaGraphicsMapFlagsWriteDiscard);
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to register PBO with CUDA: " << cudaGetErrorString(err) << std::endl;
-        return false;
-    }
-    std::cout << "PBO registered with CUDA successfully" << std::endl;
+    // Allocate device memory for output (RGB format)
+    CUDA_CHECK(cudaMalloc(&d_output, width * height * 3 * sizeof(unsigned char)));
     
     // Allocate device memory for scene data
-    err = cudaMalloc(&d_sceneData, sizeof(SceneData));
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to allocate device memory: " << cudaGetErrorString(err) << std::endl;
-        return false;
-    }
-    std::cout << "Device memory allocated: " << sizeof(SceneData) << " bytes" << std::endl;
+    CUDA_CHECK(cudaMalloc(&d_sceneData, sizeof(SceneData)));
+    
+    std::cout << "CUDA memory allocated successfully" << std::endl;
     
     return true;
 }
@@ -108,29 +91,7 @@ void RayTracer::render(const Camera& camera, const Scene& scene) {
     }
     
     // Copy scene data to device
-    cudaError_t err = cudaMemcpy(d_sceneData, &scene.getSceneData(), sizeof(SceneData), cudaMemcpyHostToDevice);
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to copy scene data: " << cudaGetErrorString(err) << std::endl;
-        return;
-    }
-    
-    // Map PBO resource
-    err = cudaGraphicsMapResources(1, &cudaPboResource, 0);
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to map PBO resource: " << cudaGetErrorString(err) << std::endl;
-        return;
-    }
-    
-    size_t numBytes;
-    err = cudaGraphicsResourceGetMappedPointer((void**)&d_output, &numBytes, cudaPboResource);
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to get mapped pointer: " << cudaGetErrorString(err) << std::endl;
-        return;
-    }
-    
-    if (frameCount % 60 == 0) {
-        std::cout << "Mapped " << numBytes << " bytes from PBO" << std::endl;
-    }
+    CUDA_CHECK(cudaMemcpy(d_sceneData, &scene.getSceneData(), sizeof(SceneData), cudaMemcpyHostToDevice));
     
     // Launch ray tracing kernel
     Vec3 cameraPos = camera.getPosition();
@@ -144,28 +105,23 @@ void RayTracer::render(const Camera& camera, const Scene& scene) {
         std::cout << "Camera dir: (" << cameraDir.x << ", " << cameraDir.y << ", " << cameraDir.z << ")" << std::endl;
     }
     
-    // Cast to float4* for CUDA kernel (RGBA format)
-    launchRayTracingKernel((float4*)d_output, width, height, d_sceneData,
+    // Launch kernel with unsigned char output
+    launchRayTracingKernel((unsigned char*)d_output, width, height, d_sceneData,
                           cameraPos, cameraDir, cameraUp, cameraRight, 45.0f);
     
     CudaUtils::checkKernelLaunch("rayTracingKernel");
     
-    // Unmap PBO resource
-    err = cudaGraphicsUnmapResources(1, &cudaPboResource, 0);
-    if (err != cudaSuccess) {
-        std::cerr << "Failed to unmap PBO resource: " << cudaGetErrorString(err) << std::endl;
-        return;
-    }
+    // Copy result back to host
+    static std::vector<unsigned char> hostOutput(width * height * 3);
+    CUDA_CHECK(cudaMemcpy(hostOutput.data(), d_output, width * height * 3 * sizeof(unsigned char), cudaMemcpyDeviceToHost));
     
-    // Update texture from PBO
+    // Update texture directly
     glBindTexture(GL_TEXTURE_2D, textureID);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGBA, GL_FLOAT, 0);
-    glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
+    glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, width, height, GL_RGB, GL_UNSIGNED_BYTE, hostOutput.data());
     glBindTexture(GL_TEXTURE_2D, 0);
     
     GLenum glErr = glGetError();
-    if (glErr != GL_NO_ERROR) {
+    if (glErr != GL_NO_ERROR && frameCount % 60 == 0) {
         std::cerr << "OpenGL error during texture update: " << glErr << std::endl;
     }
 }
@@ -179,19 +135,14 @@ void RayTracer::resize(int newWidth, int newHeight) {
 }
 
 void RayTracer::cleanup() {
-    if (cudaPboResource) {
-        cudaGraphicsUnregisterResource(cudaPboResource);
-        cudaPboResource = nullptr;
+    if (d_output) {
+        cudaFree(d_output);
+        d_output = nullptr;
     }
     
     if (d_sceneData) {
         cudaFree(d_sceneData);
         d_sceneData = nullptr;
-    }
-    
-    if (pbo) {
-        glDeleteBuffers(1, &pbo);
-        pbo = 0;
     }
     
     if (textureID) {

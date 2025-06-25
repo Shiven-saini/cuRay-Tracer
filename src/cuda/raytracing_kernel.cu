@@ -142,20 +142,6 @@ __device__ Vec3 traceRay(Ray ray, const SceneData* scene, curandState* randState
     switch (material.type) {
         case DIFFUSE: {
             color = calculateLighting(hitPoint, normal, viewDir, material, scene);
-            
-            // Add some randomness for rough surfaces
-            if (material.roughness > 0.5f && depth < MAX_RAY_DEPTH - 1) {
-                Vec3 randomDir = normal + Vec3(
-                    curand_uniform(randState) * 2.0f - 1.0f,
-                    curand_uniform(randState) * 2.0f - 1.0f,
-                    curand_uniform(randState) * 2.0f - 1.0f
-                ).normalize() * material.roughness * 0.5f;
-                randomDir = randomDir.normalize();
-                
-                Ray bounceRay(hitPoint + randomDir * EPSILON, randomDir);
-                Vec3 bounceColor = traceRay(bounceRay, scene, randState, depth + 1);
-                color = color + bounceColor * 0.1f;
-            }
             break;
         }
         
@@ -207,7 +193,7 @@ __device__ Vec3 traceRay(Ray ray, const SceneData* scene, curandState* randState
     return color;
 }
 
-__global__ void rayTracingKernel(float4* output, int width, int height,
+__global__ void rayTracingKernel(unsigned char* output, int width, int height,
                                 const SceneData* scene, Vec3 cameraPos, 
                                 Vec3 cameraFront, Vec3 cameraUp, Vec3 cameraRight,
                                 float fov) {
@@ -216,17 +202,19 @@ __global__ void rayTracingKernel(float4* output, int width, int height,
     
     if (x >= width || y >= height) return;
     
-    int idx = y * width + x;
+    int idx = (y * width + x) * 3; // RGB format
     
     // Simple test: output red color for first few pixels to verify kernel is running
     if (x < 10 && y < 10) {
-        output[idx] = make_float4(1.0f, 0.0f, 0.0f, 1.0f); // Red
+        output[idx + 0] = 255; // R
+        output[idx + 1] = 0;   // G
+        output[idx + 2] = 0;   // B
         return;
     }
     
     // Initialize random state
     curandState randState;
-    curand_init(idx + blockIdx.x * blockDim.x * blockDim.y, 0, 0, &randState);
+    curand_init(x + y * width, 0, 0, &randState);
     
     // Calculate ray direction
     float aspectRatio = float(width) / float(height);
@@ -243,29 +231,20 @@ __global__ void rayTracingKernel(float4* output, int width, int height,
     Vec3 rayDir = (cameraFront + cameraRight * u + cameraUp * v).normalize();
     Ray ray(cameraPos, rayDir);
     
-    // For now, use simple gradient to test rendering pipeline
-    Vec3 color(0, 0, 0);
+    // Use full ray tracing
+    Vec3 color = traceRay(ray, scene, &randState);
     
-    // Simple gradient based on ray direction for testing
-    color.x = (rayDir.x + 1.0f) * 0.5f;
-    color.y = (rayDir.y + 1.0f) * 0.5f;
-    color.z = (rayDir.z + 1.0f) * 0.5f;
+    // Convert to 0-255 range and apply gamma correction
+    color.x = sqrtf(fminf(fmaxf(color.x, 0.0f), 1.0f));
+    color.y = sqrtf(fminf(fmaxf(color.y, 0.0f), 1.0f));
+    color.z = sqrtf(fminf(fmaxf(color.z, 0.0f), 1.0f));
     
-    // Enable this for full ray tracing once gradient works
-    /*
-    color = traceRay(ray, scene, &randState);
-    */
-    
-    // Ensure values are in valid range
-    color.x = fminf(fmaxf(color.x, 0.0f), 1.0f);
-    color.y = fminf(fmaxf(color.y, 0.0f), 1.0f);
-    color.z = fminf(fmaxf(color.z, 0.0f), 1.0f);
-    
-    // Output as float4 for RGBA
-    output[idx] = make_float4(color.x, color.y, color.z, 1.0f);
+    output[idx + 0] = (unsigned char)(color.x * 255.0f);
+    output[idx + 1] = (unsigned char)(color.y * 255.0f);
+    output[idx + 2] = (unsigned char)(color.z * 255.0f);
 }
 
-extern "C" void launchRayTracingKernel(float4* output, int width, int height,
+extern "C" void launchRayTracingKernel(unsigned char* output, int width, int height,
                                       const SceneData* scene, Vec3 cameraPos, 
                                       Vec3 cameraFront, Vec3 cameraUp, Vec3 cameraRight,
                                       float fov, cudaStream_t stream) {
